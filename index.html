@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suite de Estrategia PRO - Tucan Importaciones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        html, body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #000000;
+            color: #f0f6fc; 
+            overflow-x: hidden;
+            width: 100%;
+            -webkit-tap-highlight-color: transparent;
+            scroll-behavior: smooth;
+        }
+        #wave-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        
+        .card { 
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); 
+            border-radius: 12px; padding: 24px; box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2); 
+            margin-bottom: 1rem; border: 1px solid rgba(139, 92, 246, 0.3);
+            transform: translateY(20px); opacity: 0; animation: popIn 0.6s ease-out forwards;
+            position: relative; overflow: hidden; background-color: rgba(10, 10, 15, 0.7);
+        }
+        @keyframes popIn { to { transform: translateY(0); opacity: 1; } }
+
+        .step-card-header { display: flex; align-items: center; margin-bottom: 1rem; }
+        .step-number { 
+            background: linear-gradient(135deg, #8b5cf6, #c026d3); color: white; border-radius: 50%; 
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 1.25rem; margin-right: 16px; flex-shrink: 0; 
+        }
+
+        .app-section {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%; z-index:100;
+            background-color: rgba(13, 17, 23, 0.9); backdrop-filter: blur(5px);
+            align-items: center; justify-content: center; flex-direction: column;
+            padding: 1rem; overflow-y: auto;
+        }
+        #initial-password-section { display: flex; }
+        
+        input, select, textarea { background-color: #1f2937; border: 1px solid #4b5563; color: white; border-radius: 8px; padding: 12px; width: 100%; }
+        input:focus, select:focus, textarea:focus { border-color: #8b5cf6; ring: 0; outline: none; box-shadow: 0 0 0 2px #8b5cf6; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        
+        .btn-aura { transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .btn-aura:hover, .btn-aura:focus { transform: translateY(-6px) scale(1.05); box-shadow: 0 0 25px rgba(167, 139, 250, 0.8), 0 0 45px rgba(192, 38, 211, 0.6); outline: none; }
+        .btn-aura:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        #main-content { display: none; width: 100%; min-height: 100vh; overflow-y: auto; }
+        .results-card { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
+        .results-card.show { opacity: 1; transform: translateY(0); }
+        .loader { border: 4px solid #374151; border-top: 4px solid #8b5cf6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto; }
+        .button-loader { width: 20px; height: 20px; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 199; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease; }
+        .modal-content { background-color: #111827; padding: 2rem; border-radius: 1rem; border: 1px solid #8b5cf6; box-shadow: 0 0 50px rgba(139, 92, 246, 0.5); width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
+        .accordion-item { border-bottom: 1px solid #374151; }
+        .accordion-header { background-color: #1f2937; padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .accordion-body { padding: 1rem; display: none; background-color: #101015; word-wrap: break-word; }
+        .accordion-body.show { display: block; }
+
+        .strategy-section {
+            background-color: rgba(31, 41, 55, 0.4); border-left: 4px solid #8b5cf6;
+            padding: 1rem 1.5rem; margin-bottom: 1.5rem; border-radius: 0 8px 8px 0;
+        }
+        #ai-result-card h3 { font-size: 1.25rem; font-weight: 700; color: #c4b5fd; margin-top: 0; margin-bottom: 0.75rem; }
+        #ai-result-card ul { list-style-type: none; padding-left: 0; }
+        #ai-result-card li { position: relative; padding-left: 25px; margin-bottom: 0.75rem;}
+        #ai-result-card li::before { content: '✓'; position: absolute; left: 0; top: 1px; color: #8b5cf6; font-weight: bold; }
+        #ai-result-card strong { color: #f0f6fc; font-weight: 600; }
+        #ai-result-card p { margin-bottom: 0.5rem; color: #d1d5db; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .toggle-switch { display: flex; border: 1px solid #4b5563; border-radius: 8px; overflow: hidden; }
+        .toggle-switch-btn {
+            flex: 1; padding: 10px; border: none; background-color: transparent;
+            color: #d1d5db; cursor: pointer; transition: background-color 0.2s; font-size: 0.9rem;
+        }
+        .toggle-switch-btn.active { background-color: #8b5cf6; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <canvas id="wave-canvas"></canvas>
+
+    <!-- Flujo de Autenticación -->
+    <div id="initial-password-section" class="app-section">
+        <div class="w-full max-w-md">
+            <div class="card p-8 space-y-4 text-center mb-6">
+                <i class="fas fa-lock text-4xl text-purple-400"></i>
+                <h1 class="text-2xl font-bold text-white">Acceso a la Suite PRO</h1>
+                <p class="text-gray-400">Ingresá la contraseña de acceso para continuar.</p>
+                <form id="password-form">
+                    <input type="password" id="password-input" placeholder="Contraseña Maestra" required>
+                    <p id="password-error-message" class="text-red-400 text-sm mt-2 h-4"></p>
+                    <button type="submit" class="btn-aura w-full px-4 py-3 mt-4 font-bold text-white bg-purple-600 rounded-lg">Verificar</button>
+                </form>
+            </div>
+             <div class="card p-6 space-y-4 text-left">
+                <div class="border-b border-purple-400/30 pb-4">
+                     <h3 class="font-bold text-lg text-white flex items-center"><i class="fas fa-check-circle text-green-400 mr-3"></i>ACCESO GRATUITO</h3>
+                     <p class="text-gray-300 text-sm mt-1">Esta Suite PRO está <span class="font-bold text-green-400">100% INCLUIDA y sin cargo</span> al comprar nuestro Pack Completo.</p>
+                </div>
+                <div>
+                     <h3 class="font-bold text-lg text-white flex items-center"><i class="fas fa-shopping-cart text-yellow-400 mr-3"></i>ACCESO INDIVIDUAL</h3>
+                     <p class="text-gray-300 text-sm mt-1">Si querés acceder <span class="font-bold">únicamente a la Suite PRO</span>, el costo es de <span class="font-bold text-yellow-400">$19,799 ARS.</span></p>
+                     <button id="buy-btn" class="btn-aura w-full mt-4 bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg text-sm flex items-center justify-center">
+                        <i class="fab fa-whatsapp mr-2"></i>Quiero la Suite PRO
+                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="login-register-section" class="app-section">
+        <div class="card w-full max-w-md p-8 space-y-6 text-center">
+            <i class="fas fa-user-check text-4xl text-purple-400"></i>
+            <h1 class="text-2xl font-bold text-white">Verificación Completa</h1>
+            <div class="space-y-4 pt-4">
+                <button id="show-login-form-btn" class="btn-aura w-full bg-purple-600 text-white font-bold py-3 rounded-lg">Iniciar Sesión</button>
+                <button id="show-register-form-btn" class="btn-aura w-full bg-green-600 text-white font-bold py-3 rounded-lg">Crear una Cuenta</button>
+            </div>
+        </div>
+    </div>
+    <div id="phone-login-section" class="app-section">
+        <div class="card w-full max-w-md p-8 space-y-4 text-center">
+            <i class="fas fa-mobile-alt text-4xl text-purple-400"></i>
+            <h1 class="text-2xl font-bold text-white">Iniciar Sesión</h1>
+            <p class="text-gray-400">Ingresá tu número de celular para acceder.</p>
+            <form id="phone-login-form">
+                <input type="number" id="phone-login-input" placeholder="Tu número de celular (sin 0 y sin 15)" class="text-center" required>
+                <p id="phone-error-message" class="text-red-400 text-sm mt-2 h-4"></p>
+                <button type="submit" class="btn-aura w-full px-4 py-3 mt-4 font-bold text-white bg-purple-600 rounded-lg">Ingresar</button>
+            </form>
+            <button id="back-to-options-1" class="text-gray-400 text-sm mt-4 hover:underline">Volver</button>
+        </div>
+    </div>
+    <div id="register-section" class="app-section">
+        <div class="card w-full max-w-md p-8 space-y-6 text-center">
+            <i class="fas fa-user-plus text-4xl text-purple-400"></i>
+            <h1 class="text-2xl font-bold text-white">Crear Cuenta Nueva</h1>
+            <form id="register-form" class="text-left space-y-4">
+                <div><label for="user-name" class="block text-sm font-medium text-gray-300">Nombre Completo</label><input type="text" id="user-name" class="mt-1" required></div>
+                <div><label for="user-phone-register" class="block text-sm font-medium text-gray-300">Número de Celular</label><input type="number" id="user-phone-register" placeholder="Ej: 3815123456 (sin 0 y sin 15)" class="mt-1" required></div>
+                <p id="register-error-message" class="text-red-400 text-sm h-4 text-center"></p>
+                <button type="submit" class="btn-aura w-full px-4 py-3 mt-4 font-bold text-white bg-green-600 rounded-lg">Confirmar y Crear Cuenta</button>
+            </form>
+            <div class="text-xs text-gray-500 pt-4 border-t border-gray-700 mt-6">
+                <p><i class="fas fa-shield-alt mr-1"></i> Tu acceso es personal e intransferible.</p>
+            </div>
+            <button id="back-to-options-2" class="text-gray-400 text-sm mt-4 hover:underline">Volver</button>
+        </div>
+    </div>
+    <div id="gender-section" class="app-section">
+         <div class="card w-full max-w-md p-8 space-y-6 text-center">
+            <i class="fas fa-user-circle text-4xl text-purple-400"></i><h1 class="text-2xl font-bold text-white">¡Todo listo!</h1>
+            <p class="text-gray-400">Para personalizar la IA, ¿cómo te identificas?</p>
+            <div class="toggle-switch" id="gender-toggle">
+                <button data-gender="amigo" class="toggle-switch-btn">Masculino</button>
+                <button data-gender="amiga" class="toggle-switch-btn">Femenino</button>
+                <button data-gender="crack" class="toggle-switch-btn active">Prefiero no decirlo</button>
+            </div>
+            <button id="start-btn" class="btn-aura w-full px-4 py-3 mt-4 font-bold text-white bg-green-600 rounded-lg">Comenzar a Usar la Suite</button>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div id="main-content">
+        <div class="container mx-auto px-4 py-8 max-w-3xl">
+            <header class="text-center mb-16"><a href="https://tucanimportaciones.netlify.app" class="text-2xl font-extrabold text-purple-400">TUCAN IMPORTACIONES</a><h1 class="text-4xl lg:text-5xl font-bold text-white mt-2">CALCULADORA Y ASISTENTE IA</h1></header>
+            <main>
+                <!-- CALCULADORA DE PRECIOS MODIFICADA -->
+                <section id="price-calculator" class="mb-20"><h2 class="text-3xl font-bold text-center mb-8 text-white"><i class="fas fa-calculator mr-2 text-purple-400"></i>Calculadora de Precios PRO</h2><div class="card"><div class="step-card-header"><div class="step-number">1</div><h3 class="text-2xl font-bold">Costo del Producto</h3></div><div class="space-y-4"><div><label for="product-name" class="block text-sm font-medium text-gray-300">Nombre del Producto</label><input type="text" id="product-name" placeholder="Ej: iPhone 13 Semi-Nuevo"></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="cost-usd" class="block text-sm font-medium text-gray-300">Costo en Origen (USD)</label><input type="number" id="cost-usd" placeholder="300"></div><div><label for="dolar-rate" class="block text-sm font-medium text-gray-300">Cotización Dólar (ARS)</label><input type="number" id="dolar-rate" value="1250"></div></div></div></div><div class="card"><div class="step-card-header"><div class="step-number">2</div><h3 class="text-2xl font-bold">Costos Logísticos y Operativos</h3></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6"><div><label for="shipping-cost" class="block text-sm font-medium text-gray-300">Envío Internacional (ARS)</label><input type="number" id="shipping-cost" placeholder="Ej: 20000"></div><div><label for="other-costs" class="block text-sm font-medium text-gray-300">Otros Gastos (ARS)</label><input type="number" id="other-costs" placeholder="Ej: 15000"><p class="text-xs text-gray-400 mt-1">Impuestos, despachante, etc.</p></div><div><label for="platform-fee" class="block text-sm font-medium text-gray-300">Comisión Pasarela (%)</label><input type="number" id="platform-fee" placeholder="7"><p class="text-xs text-gray-400 mt-1">Mercado Pago, Ualá, etc (5-8%).</p></div><div><label for="local-shipping" class="block text-sm font-medium text-gray-300">Envío al Cliente (ARS)</label><input type="number" id="local-shipping" placeholder="Ej: 5000"></div></div></div><div class="card"><div class="step-card-header"><div class="step-number">3</div><h3 class="text-2xl font-bold">Tu Ganancia</h3></div><div><label class="block text-sm font-medium text-gray-300 mb-2">¿Cómo querés calcular tu ganancia?</label><div id="profit-toggle" class="toggle-switch mb-4"><button data-type="percent" class="toggle-switch-btn active">% Porcentaje</button><button data-type="ars" class="toggle-switch-btn">$ Monto Fijo</button></div><label for="profit-value" id="profit-label" class="block text-sm font-medium text-gray-300">Margen de Ganancia (%)</label><input type="number" id="profit-value" placeholder="Ej: 30"></div></div><div class="text-center mt-8"><button id="calculate-btn" class="btn-aura w-full max-w-xs mx-auto bg-purple-600 text-white font-bold text-lg py-4 px-6 rounded-full"><i class="fas fa-magic mr-2"></i>Calcular Precio Final</button></div><div id="results-container" class="mt-12" style="display:none;"><h3 class="text-2xl font-bold text-center mb-4">Resultado para: <span id="result-product-name" class="text-purple-400"></span></h3><div id="results-card" class="results-card card"><div class="grid md:grid-cols-2 gap-6 items-center"><div class="w-full max-w-xs mx-auto"><canvas id="pricePieChart"></canvas></div><div class="space-y-3 text-center md:text-left"><div class="bg-gray-800 p-3 rounded-lg"><p class="text-sm text-gray-300">Costo Total por Unidad</p><p id="total-cost" class="text-xl font-bold"></p></div><div class="bg-green-800/50 p-3 rounded-lg"><p class="text-sm text-green-300">Tu Ganancia Neta</p><p id="net-profit" class="text-xl font-bold text-green-400"></p></div><div class="bg-purple-800/50 p-4 rounded-lg"><p class="text-sm text-purple-300">PRECIO SUGERIDO (PVP)</p><p id="final-price" class="text-3xl font-extrabold text-purple-400"></p></div></div></div></div></div></section>
+                
+                <!-- ASISTENTE DE NICHO MODIFICADO -->
+                <section id="niche-finder" class="mt-20 pt-10 border-t-2 border-dashed border-gray-700"><h2 class="text-3xl font-bold text-center mb-8 text-white"><i class="fas fa-brain mr-2 text-purple-400"></i>Asistente de Guiones y Públicos</h2><p class="text-lg text-gray-400 text-center mb-12">Una IA que crea la estrategia de publicidad completa para Meta Ads.</p><div class="card"><div class="step-card-header"><div class="step-number">1</div><h3 class="text-2xl font-bold">El Producto</h3></div><p class="text-sm text-gray-400 mb-2">¿Qué vas a vender? Sé específico.</p><input type="text" id="ai-product" placeholder="Ej: Perfumes árabes de lujo para hombres"></div><div class="card"><div class="step-card-header"><div class="step-number">2</div><h3 class="text-2xl font-bold">El Dolor y la Transformación</h3></div><p class="text-sm text-gray-400 mb-2">¿Cuál es la frustración más grande de tu cliente ideal?</p><input type="text" id="ai-pain" placeholder="Ej: Está cansado de los perfumes comunes que no duran." class="mb-4"><p class="text-sm text-gray-400 mb-2">Después de usarte, ¿cómo se siente o qué logra?</p><input type="text" id="ai-desire" placeholder="Ej: Se siente único, con más confianza y elegancia."></div><div class="card"><div class="step-card-header"><div class="step-number">3</div><h3 class="text-2xl font-bold">Detective de Clientes</h3></div><p class="text-sm text-gray-400 mb-2">Usa tu imaginación. ¿Qué auto maneja? ¿Dónde trabaja? ¿Qué celular usa? ¿A qué influencer sigue?</p><textarea id="ai-extra" placeholder="Ej: Maneja un VW Vento. Trabaja en una oficina. Usa un iPhone." rows="4"></textarea></div><div class="card"><div class="step-card-header"><div class="step-number">4</div><h3 class="text-2xl font-bold">Ubicación y Estilo</h3></div><label for="ai-location" class="block text-sm font-medium text-gray-300 mb-2">Ubicación del Cliente</label><input type="text" id="ai-location" placeholder="Ej: San Miguel de Tucumán, Yerba Buena" class="mb-4"><p class="text-xs text-gray-400 mt-0 mb-4">Sé específico. Mientras más acotada la ciudad o pueblo, mejor.</p><label class="block text-sm font-medium text-gray-300 mb-2">Estilo del Video</label><div id="video-style-toggle" class="toggle-switch"><button data-style="ugc" class="toggle-switch-btn active">Solo Producto</button><button data-style="personal" class="toggle-switch-btn">Aparezco en Cámara</button></div></div><div class="card"><div class="step-card-header"><div class="step-number">5</div><h3 class="text-2xl font-bold">Tu Plan de Ataque</h3></div><p class="text-sm text-gray-400 mb-2">¿Cuánto pensás invertir por día y por cuánto tiempo?</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="ai-budget" class="block text-sm font-medium text-gray-300">Inversión Diaria (ARS)</label><input type="number" id="ai-budget" placeholder="Ej: 5000"></div><div><label for="ai-duration" class="block text-sm font-medium text-gray-300">Duración (días)</label><input type="number" id="ai-duration" placeholder="Ej: 7"></div></div></div><div class="text-center mt-8"><button id="ai-generate-btn" class="btn-aura w-full max-w-xs mx-auto bg-purple-600 text-white font-bold text-lg py-4 px-6 rounded-full"><i class="fas fa-film mr-2"></i>Generar Estrategia Completa</button></div><div id="ai-loading-spinner" class="text-center my-10" style="display:none;"><div class="loader"></div><p class="mt-4 text-gray-400">La IA está cocinando tu estrategia...</p></div><div id="ai-result-container" class="mt-12" style="display:none;"><div id="ai-result-card" class="card p-6"></div><div id="ai-save-button-container" class="text-center mt-4"></div></div></section>
+            </main>
+            <div class="flex justify-between items-center mt-20 pt-8 border-t border-gray-700 flex-wrap gap-4">
+                <button id="my-strategies-btn" class="btn-aura text-sm bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-save mr-2"></i>Mis Estrategias</button>
+                <button id="logout-btn" class="btn-aura text-sm bg-red-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+      import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBW6vsbQf-K9XPL345SRPjzJOU8otBhrvw",
+        authDomain: "suit-tucan.firebaseapp.com",
+        projectId: "suit-tucan",
+        storageBucket: "suit-tucan.appspot.com",
+        messagingSenderId: "801202591437",
+        appId: "1:801202591437:web:07bb5679b0fa9ef69f3b84",
+        measurementId: "G-YXVS74LN4W"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      document.addEventListener('DOMContentLoaded', () => {
+            // --- GLOBAL VARIABLES & CONFIG ---
+            let userGender = 'crack';
+            let currentUserPhone = null;
+            const correctPassword = 'tucan';
+            const WHATSAPP_NUMBER = '5493815730948';
+            let priceChart = null;
+            const SESSION_PHONE_KEY = 'TucanSuite_SessionPhone_vFinal';
+            const SESSION_TS_KEY = 'TucanSuite_SessionTimestamp_vFinal';
+
+            // --- 3D BACKGROUND LOGIC (Sin cambios) ---
+            let scene, camera, renderer, plane, clock;
+            function initWaveBackground() {
+                const canvas = document.getElementById('wave-canvas'); if (!canvas) return;
+                try {
+                    scene = new THREE.Scene(); clock = new THREE.Clock();
+                    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+                    camera.position.set(0, 0, 35);
+                    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    const geometry = new THREE.PlaneGeometry(100, 100, 50, 50);
+                    const material = new THREE.MeshBasicMaterial({ color: 0x6a0dad, wireframe: true, transparent: true, opacity: 0.15 });
+                    plane = new THREE.Mesh(geometry, material); scene.add(plane);
+                    window.addEventListener('resize', onWindowResize, false);
+                    animateWave();
+                } catch (e) { console.error("Error initializing 3D background:", e); canvas.style.display = 'none'; }
+            }
+            function animateWave() {
+                if(!renderer || !plane) return;
+                requestAnimationFrame(animateWave);
+                const t = clock.getElapsedTime(); const positions = plane.geometry.attributes.position.array;
+                for (let i = 2; i < positions.length; i += 3) {
+                    const x = positions[i-2]; const y = positions[i-1];
+                    positions[i] = (Math.sin(x * 0.1 + t) + Math.cos(y * 0.1 + t)) * 2;
+                }
+                plane.geometry.attributes.position.needsUpdate = true;
+                renderer.render(scene, camera);
+            }
+            function onWindowResize() {
+                if(!camera || !renderer) return;
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            // --- UI & NAVIGATION ---
+            const sections = {
+                initialPassword: document.getElementById('initial-password-section'),
+                loginRegister: document.getElementById('login-register-section'),
+                phoneLogin: document.getElementById('phone-login-section'),
+                register: document.getElementById('register-section'),
+                gender: document.getElementById('gender-section'),
+                main: document.getElementById('main-content')
+            };
+            function showSection(sectionKey) {
+                Object.values(sections).forEach(section => { if(section) section.style.display = 'none'; });
+                if (sections[sectionKey]) {
+                    sections[sectionKey].style.display = (sectionKey === 'main') ? 'block' : 'flex';
+                }
+                document.body.style.overflowY = (sectionKey === 'main') ? 'auto' : 'hidden';
+            }
+            
+            function toggleButtonLoader(button, show) {
+                if (show) {
+                    button.disabled = true;
+                    button.dataset.originalText = button.innerHTML;
+                    button.innerHTML = '<span class="button-loader"></span>';
+                } else {
+                    button.disabled = false;
+                    button.innerHTML = button.dataset.originalText;
+                }
+            }
+
+            // --- SESSION MANAGEMENT ---
+            function startUserSession(phone) {
+                currentUserPhone = phone;
+                localStorage.setItem(SESSION_PHONE_KEY, phone);
+                localStorage.setItem(SESSION_TS_KEY, new Date().getTime());
+            }
+
+            function checkSession() {
+                const sessionPhone = localStorage.getItem(SESSION_PHONE_KEY);
+                const sessionTimestamp = localStorage.getItem(SESSION_TS_KEY);
+                if (sessionPhone && sessionTimestamp) {
+                    const minutesElapsed = (new Date().getTime() - Number(sessionTimestamp)) / (1000 * 60);
+                    if (minutesElapsed < 120) { // Sesión de 2 horas
+                        currentUserPhone = sessionPhone;
+                        localStorage.setItem(SESSION_TS_KEY, new Date().getTime());
+                        showSection('main');
+                    } else { logout(); }
+                } else { showSection('initialPassword'); }
+            }
+            
+            function logout() {
+                localStorage.removeItem(SESSION_PHONE_KEY);
+                localStorage.removeItem(SESSION_TS_KEY);
+                currentUserPhone = null;
+                location.replace(window.location.pathname);
+            }
+
+            // --- MODAL & STRATEGIES ---
+            function createModal(contentHTML) {
+                const modalBackdrop = document.createElement('div');
+                modalBackdrop.className = 'modal-backdrop';
+                const modalContentDiv = document.createElement('div');
+                modalContentDiv.className = 'modal-content';
+                modalContentDiv.innerHTML = contentHTML;
+                modalBackdrop.appendChild(modalContentDiv);
+                document.body.appendChild(modalBackdrop);
+                modalBackdrop.addEventListener('click', (e) => {
+                    if (e.target === modalBackdrop || e.target.classList.contains('close-modal-btn')) {
+                        modalBackdrop.remove();
+                    }
+                });
+            }
+
+            async function saveCurrentStrategy() {
+                const aiResultCard = document.getElementById('ai-result-card');
+                const saveBtn = document.getElementById('save-strategy-btn');
+                if (!aiResultCard.innerHTML || !currentUserPhone || !saveBtn) return;
+                
+                toggleButtonLoader(saveBtn, true);
+
+                try {
+                    const strategiesColRef = collection(db, "users", currentUserPhone, "strategies");
+                    await addDoc(strategiesColRef, {
+                        createdAt: serverTimestamp(),
+                        content: aiResultCard.innerHTML,
+                        product: document.getElementById('ai-product').value || 'Estrategia Sin Título'
+                    });
+                    saveBtn.innerHTML = '<i class="fas fa-check mr-2"></i>¡Guardada!';
+                    saveBtn.disabled = true;
+                } catch (error) {
+                    console.error("Error al guardar estrategia:", error);
+                    alert("No se pudo guardar la estrategia. Intenta de nuevo.");
+                    toggleButtonLoader(saveBtn, false);
+                }
+            }
+
+            async function showSavedStrategiesModal() {
+                if (!currentUserPhone) return;
+                
+                try {
+                    const q = query(collection(db, "users", currentUserPhone, "strategies"), orderBy("createdAt", "desc"));
+                    const querySnapshot = await getDocs(q);
+                    
+                    let modalBodyHTML = `<h3 class="text-xl font-bold text-purple-400 mb-4 text-center">Mis Estrategias Guardadas</h3>`;
+                    if (!querySnapshot.empty) {
+                        modalBodyHTML += querySnapshot.docs.map((doc, i) => {
+                            const data = doc.data();
+                            const date = data.createdAt ? data.createdAt.toDate().toLocaleString('es-AR') : 'Fecha no disponible';
+                            return `
+                            <div class="accordion-item">
+                                <div class="accordion-header" data-target="b-${i}">
+                                    <div><strong class="text-white">${data.product}</strong><p class="text-xs text-gray-400">${date}</p></div>
+                                    <i class="fas fa-chevron-down text-purple-400"></i>
+                                </div>
+                                <div id="b-${i}" class="accordion-body">${data.content}</div>
+                            </div>`;
+                        }).join('');
+                    } else {
+                        modalBodyHTML += `<p class="text-yellow-400 text-center py-4">Aún no has guardado ninguna estrategia.</p>`;
+                    }
+                    modalBodyHTML += `<button class="close-modal-btn btn-aura w-full mt-6 bg-gray-600 text-white font-bold py-2 rounded-lg">Cerrar</button>`;
+                    createModal(modalBodyHTML);
+                    document.querySelectorAll('.accordion-header').forEach(h => {
+                        h.addEventListener('click', () => {
+                            const body = document.getElementById(h.dataset.target);
+                            body.classList.toggle('show');
+                            h.querySelector('i').classList.toggle('fa-chevron-down');
+                            h.querySelector('i').classList.toggle('fa-chevron-up');
+                        });
+                    });
+                } catch (error) {
+                    console.error("Error al cargar estrategias:", error);
+                    alert("No se pudieron cargar las estrategias guardadas.");
+                }
+            }
+
+            function setupToggle(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                container.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                    }
+                });
+            }
+            
+            // --- EVENT LISTENERS ---
+            function attachEventListeners() {
+                document.getElementById('password-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (document.getElementById('password-input').value.trim().toLowerCase() === correctPassword) {
+                        showSection('loginRegister');
+                    } else {
+                        document.getElementById('password-error-message').textContent = 'Contraseña incorrecta.';
+                    }
+                });
+                document.getElementById('show-login-form-btn').addEventListener('click', () => showSection('phoneLogin'));
+                document.getElementById('show-register-form-btn').addEventListener('click', () => showSection('register'));
+                document.getElementById('back-to-options-1').addEventListener('click', () => showSection('loginRegister'));
+                document.getElementById('back-to-options-2').addEventListener('click', () => showSection('loginRegister'));
+                document.getElementById('buy-btn').addEventListener('click', () => {
+                    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('¡Hola! Quisiera comprar el acceso individual a la Suite PRO.')}`, '_blank');
+                });
+                
+                document.getElementById('phone-login-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const button = e.target.querySelector('button[type="submit"]');
+                    const phone = document.getElementById('phone-login-input').value.trim();
+                    const errorMsg = document.getElementById('phone-error-message');
+                    errorMsg.textContent = '';
+                    
+                    if(!phone) {
+                        errorMsg.textContent = 'Ingresá tu número de celular.';
+                        return;
+                    }
+                    
+                    toggleButtonLoader(button, true);
+
+                    try {
+                        const userRef = doc(db, "users", phone);
+                        const userSnap = await getDoc(userRef);
+
+                        if (userSnap.exists()) {
+                            startUserSession(phone);
+                            showSection('gender');
+                        } else {
+                            errorMsg.textContent = 'Celular no encontrado. Creá una cuenta.';
+                        }
+                    } catch (error) {
+                        console.error("Error en login:", error);
+                        errorMsg.textContent = 'Error de conexión. Intentá de nuevo.';
+                    } finally {
+                        toggleButtonLoader(button, false);
+                    }
+                });
+                
+                document.getElementById('register-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const button = e.target.querySelector('button[type="submit"]');
+                    const name = document.getElementById('user-name').value.trim();
+                    const phone = document.getElementById('user-phone-register').value.trim();
+                    const errorMsg = document.getElementById('register-error-message');
+                    errorMsg.textContent = '';
+                    
+                    if (!name || !phone) {
+                        errorMsg.textContent = 'Completá todos los campos.';
+                        return;
+                    }
+
+                    toggleButtonLoader(button, true);
+
+                    try {
+                        const userRef = doc(db, "users", phone);
+                        const userSnap = await getDoc(userRef);
+
+                        if (userSnap.exists()) {
+                            errorMsg.textContent = 'Este celular ya está registrado.';
+                        } else {
+                            await setDoc(userRef, { name, phone, createdAt: serverTimestamp() });
+                            startUserSession(phone);
+                            showSection('gender');
+                        }
+                    } catch (error) {
+                        console.error("Error en registro:", error);
+                        errorMsg.textContent = 'Error de conexión. Intentá de nuevo.';
+                    } finally {
+                        toggleButtonLoader(button, false);
+                    }
+                });
+                
+                document.getElementById('start-btn').addEventListener('click', () => { 
+                    const selectedGenderBtn = document.querySelector('#gender-toggle .active');
+                    if(selectedGenderBtn) userGender = selectedGenderBtn.dataset.gender;
+                    showSection('main');
+                });
+                
+                document.getElementById('logout-btn').addEventListener('click', logout);
+                document.getElementById('my-strategies-btn').addEventListener('click', showSavedStrategiesModal);
+
+                setupToggle('gender-toggle');
+                setupToggle('profit-toggle');
+                setupToggle('video-style-toggle');
+
+                document.getElementById('profit-toggle').addEventListener('click', (e) => {
+                     const profitLabel = document.getElementById('profit-label');
+                     const profitValueInput = document.getElementById('profit-value');
+                     if(e.target.dataset.type === 'percent') {
+                        profitLabel.textContent = 'Margen de Ganancia (%)';
+                        profitValueInput.placeholder = 'Ej: 30';
+                     } else if (e.target.dataset.type === 'ars') {
+                        profitLabel.textContent = 'Monto de Ganancia (ARS)';
+                        profitValueInput.placeholder = 'Ej: 15000';
+                     }
+                });
+
+                document.getElementById('calculate-btn').addEventListener('click', () => {
+                    const costUsd = parseFloat(document.getElementById('cost-usd').value) || 0; 
+                    const dolarRate = parseFloat(document.getElementById('dolar-rate').value) || 1; 
+                    const shippingCost = parseFloat(document.getElementById('shipping-cost').value) || 0; 
+                    const otherCosts = parseFloat(document.getElementById('other-costs').value) || 0; 
+                    const platformFeePercent = parseFloat(document.getElementById('platform-fee').value) || 0; 
+                    const localShipping = parseFloat(document.getElementById('local-shipping').value) || 0; 
+                    const profitValue = parseFloat(document.getElementById('profit-value').value) || 0;
+                    const baseCost = costUsd * dolarRate + shippingCost + otherCosts + localShipping; 
+                    
+                    if (isNaN(baseCost) || baseCost < 0) { alert("Por favor, ingresa valores de costos válidos."); return; }
+                    if (platformFeePercent >= 100) { alert("La comisión de la pasarela no puede ser 100% o más."); return; }
+
+                    let finalPrice = 0;
+                    const profitType = document.querySelector('#profit-toggle .active').dataset.type;
+                    if (profitType === 'percent') finalPrice = (baseCost * (1 + profitValue / 100)) / (1 - platformFeePercent / 100);
+                    else finalPrice = (baseCost + profitValue) / (1 - platformFeePercent / 100);
+                    
+                    const platformFeeValue = finalPrice * (platformFeePercent / 100); 
+                    const netProfit = finalPrice - baseCost - platformFeeValue;
+
+                    document.getElementById('result-product-name').innerText = document.getElementById('product-name').value || "Tu Producto"; 
+                    document.getElementById('total-cost').innerText = (baseCost + platformFeeValue).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }); 
+                    document.getElementById('net-profit').innerText = netProfit.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }); 
+                    document.getElementById('final-price').innerText = finalPrice.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }); 
+                    
+                    if(priceChart) priceChart.destroy(); 
+                    priceChart = new Chart(document.getElementById('pricePieChart').getContext('2d'), { 
+                        type: 'doughnut', 
+                        data: { labels: ['Costo Base', 'Ganancia Neta', 'Comisiones'], datasets: [{ data: [baseCost > 0 ? baseCost : 0, netProfit > 0 ? netProfit : 0, platformFeeValue > 0 ? platformFeeValue : 0], backgroundColor: ['#ef4444', '#22c55e', '#a855f7'], borderColor: '#111827', borderWidth: 4 }] }, 
+                        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#d1d5db' } } } } 
+                    }); 
+                    
+                    document.getElementById('results-container').style.display = 'block';
+                    setTimeout(() => {
+                        document.getElementById('results-card').classList.add('show');
+                        document.getElementById('results-container').scrollIntoView(); 
+                    }, 10);
+                }); 
+                
+                document.getElementById('ai-generate-btn').addEventListener('click', async () => {
+                    const product = document.getElementById('ai-product').value;
+                    const pain = document.getElementById('ai-pain').value;
+                    const desire = document.getElementById('ai-desire').value;
+                    const extra = document.getElementById('ai-extra').value; // CAMPO REINTEGRADO
+                    const location = document.getElementById('ai-location').value; 
+                    const videoStyle = document.querySelector('#video-style-toggle .active').dataset.style;
+                    const budget = parseFloat(document.getElementById('ai-budget').value) || 0;
+                    const duration = parseFloat(document.getElementById('ai-duration').value) || 0;
+                    if (!product || !pain || !desire || !location || !budget || !duration) { 
+                        alert('Por favor, completá todos los campos del asistente.'); return; 
+                    }
+                    const loadingSpinner = document.getElementById('ai-loading-spinner');
+                    const resultContainer = document.getElementById('ai-result-container');
+                    const resultCard = document.getElementById('ai-result-card');
+                    const saveBtnContainer = document.getElementById('ai-save-button-container');
+
+                    loadingSpinner.style.display = 'block'; 
+                    resultContainer.style.display = 'none';
+                    resultCard.innerHTML = ''; saveBtnContainer.innerHTML = '';
+                    loadingSpinner.scrollIntoView(); 
+
+                    const userDoc = await getDoc(doc(db, "users", currentUserPhone));
+                    const nameForPrompt = userDoc.exists() ? userDoc.data().name.split(' ')[0] : 'Crack';
+                    
+                    const prompt = `
+                        Por favor, genera una estrategia de marketing para Meta Ads. Devuelve únicamente el código HTML, sin explicaciones ni texto introductorio, ni ningún tipo de markdown como \`\`\`html o **.
+
+                        CLIENTE:
+                        - Nombre: "${nameForPrompt}"
+                        - Producto: "${product}"
+                        - Dolor que alivia: "${pain}"
+                        - Transformación que vende: "${desire}"
+                        - Detalles extra del cliente ideal: "${extra}"
+                        - UBICACIÓN DEL PÚBLICO: "${location}"
+                        - ESTILO DE VIDEO: "${videoStyle}"
+                        - Presupuesto diario: $${budget.toLocaleString('es-AR')} ARS
+                        - Duración de campaña: ${duration} días
+
+                        ESTRUCTURA HTML A SEGUIR:
+                        <div class="strategy-section">
+                            <h3>👋 ¡Hola, ${nameForPrompt}! Acá tenés tu plan de ataque.</h3>
+                            <p>Analicé lo que me pasaste y te preparé una estrategia completa para que la rompas vendiendo "${product}" en ${location}.</p>
+                        </div>
+                        <div class="strategy-section">
+                            <h3>🎯 PÚBLICO OBJETIVO PARA META ADS</h3>
+                            <p>Este es el perfil de cliente ideal en ${location}. Gente con la billetera lista para comprarte.</p>
+                            <ul>
+                                <li><strong>Ubicación Específica:</strong> ${location}. ¡Perfecto para un público concentrado!</li>
+                                <li><strong>Datos demográficos:</strong> Edad: [Define un rango lógico para el producto, ej: 25-45 años]. Género: [Define el género o "Ambos"].</li>
+                                <li><strong>Intereses Clave (basado en detalles):</strong> [Sugiere 5 intereses DIRECTOS relacionados al producto, al dolor y a los detalles extra. Explica por qué].</li>
+                                <li><strong>Comportamiento de Compra:</strong> Imprescindible usar "Compradores que interactuaron".</li>
+                            </ul>
+                        </div>
+                        <div class="strategy-section">
+                            <h3>🎬 GUION PARA VIDEO (${videoStyle === 'personal' ? 'Apareciendo en Cámara' : 'Solo Mostrando el Producto'})</h3>
+                            <p>${videoStyle === 'personal' ? 'Este guion está pensado para que vos aparezcas y conectes con la gente.' : 'Este guion se enfoca en tomas dinámicas del producto para que venda solo.'}</p>
+                            <ul>
+                                <li><strong>0-3s (Gancho):</strong> ${videoStyle === 'personal' ? 'Mirando a cámara, decí: [frase de gancho relacionada al dolor]. Mostrá una expresión de empatía.' : 'Toma ultra rápida y llamativa del producto en uso. Texto en pantalla: [frase de gancho].'}</li>
+                                <li><strong>4-9s (Problema > Solución):</strong> ${videoStyle === 'personal' ? 'Mostrá el "antes" (el problema). Luego, presentá el producto con una sonrisa y decí: "Te presento [nombre del producto]".' : 'Secuencia de tomas mostrando el problema, y luego el producto resolviéndolo de forma satisfactoria (ej. un antes/después).'}</li>
+                                <li><strong>10-15s (Llamada a la Acción):</strong> ${videoStyle === 'personal' ? 'Sostené el producto cerca de la cámara y decí con entusiasmo: "Si sos de ${location} y querés [lograr el deseo], tocá el botón de abajo. ¡Hay stock limitado!".' : 'Toma épica del producto en su packaging. Texto en pantalla: "Stock limitado en ${location}. ¡Pedí el tuyo ahora!". Flecha apuntando al botón.'}</li>
+                            </ul>
+                        </div>`;
+                    
+                    try {
+                        let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                        const payload = { contents: chatHistory, generationConfig: { responseMimeType: "text/plain" } };
+                        const apiKey = "";
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+                        const result = await response.json();
+                        let iaResponse = "<div class='strategy-section'><p>Error: No se pudo generar la estrategia.</p></div>";
+                        if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts) {
+                            iaResponse = result.candidates[0].content.parts[0].text;
+                        }
+                        resultCard.innerHTML = iaResponse;
+                        saveBtnContainer.innerHTML = `<button id="save-strategy-btn" class="btn-aura bg-green-600 text-white font-bold py-3 px-5 rounded-lg"><i class="fas fa-save mr-2"></i>Guardar Esta Estrategia</button>`;
+                        document.getElementById('save-strategy-btn').addEventListener('click', saveCurrentStrategy);
+                    } catch (error) { 
+                        resultCard.innerHTML = `<div class="strategy-section"><p class="text-red-400 text-center">Hubo un error al conectar con la IA.<br><small>${error.message}</small></p></div>`; 
+                    } finally { 
+                        loadingSpinner.style.display = 'none'; 
+                        resultContainer.style.display = 'block';
+                        setTimeout(() => resultContainer.scrollIntoView(), 10);
+                    }
+                });
+            }
+
+            // --- APP INITIALIZATION ---
+            initWaveBackground();
+            checkSession();
+            attachEventListeners();
+      });
+    </script>
+</body>
+</html>
